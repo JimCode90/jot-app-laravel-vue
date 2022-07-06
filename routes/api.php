@@ -8,6 +8,10 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
     return $request->user();
 });
 
+
 Route::post('/contacts', [ContactController::class, 'store']);
+Route::get('/contacts/{contact}', [ContactController::class, 'show']);
+Route::patch('/contacts/{contact}', [ContactController::class, 'update']);
+
 
 
