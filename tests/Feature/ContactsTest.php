@@ -13,7 +13,14 @@ class ContactsTest extends TestCase
     use RefreshDatabase;
 
 
-    protected $user;
+//    protected $user;
+    /** @test */
+    public function un_usuario_no_autenticado_debe_ser_redirigido_para_iniciar_sesion()
+    {
+        $response = $this->post('/api/contacts', $this->data());
+        $response->assertRedirect('/login');
+        $this->assertCount(0, Contact::all());
+    }
 
     /** @test */
     public function se_puede_agregar_un_contacto()
@@ -72,7 +79,7 @@ class ContactsTest extends TestCase
     public function se_puede_recuperar_un_contacto()
     {
         $contact = Contact::factory()->create();
-        $response = $this->get('/api/contacts/'.$contact->id);
+        $response = $this->get('/api/contacts/' . $contact->id);
         $response->assertJson([
             'name' => true,
             'email' => true,
@@ -97,6 +104,13 @@ class ContactsTest extends TestCase
         $this->assertEquals('ABC String', $contact->company);
     }
 
+    /** @test */
+    public function un_contacto_puede_ser_eliminado()
+    {
+        $contact = Contact::factory()->create();
+        $response = $this->delete('/api/contacts/' . $contact->id);
+        $this->assertCount(0, Contact::all());
+    }
 
     private function data()
     {
