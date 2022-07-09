@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Contact;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
@@ -23,19 +24,22 @@ class ContactsTest extends TestCase
     }
 
     /** @test */
-    public function se_puede_agregar_un_contacto()
+    public function un_usuario_autenticado_puede_agregar_un_contacto()
     {
 
-        $this->withoutExceptionHandling();
+        $user = User::factory()->create();
+        //$this->withoutExceptionHandling();
 
-        $this->post('/api/contacts', $this->data());
+        $this->post('/api/contacts', $this->data(),[
+           'api_token' =>  $user->api_token
+        ]);
 
         $contact = Contact::first();
 
         //$this->assertCount(1, $contact);
         $this->assertEquals('Test Name', $contact->name);
         $this->assertEquals('test@email.com', $contact->email);
-        $this->assertEquals('05/14/1990', $contact->birthday);
+        $this->assertEquals('05/14/1990', $contact->birthday->format('m/d/Y'));
         $this->assertEquals('ABC String', $contact->company);
 
     }
