@@ -13,12 +13,45 @@ class ContactsTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected $user;
 
-//    protected $user;
+    /** @test */
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->user = User::factory()->create();
+    }
+
+    /** @test */
+    public function se_puede_obtener_una_lista_de_contactos_para_el_usuario_autenticado()
+    {
+        $this->withoutExceptionHandling();
+        $user = User::factory()->create();
+        $anotherUser = User::factory()->create();
+
+        $contact = Contact::factory()->create([
+            'user_id' => $user->id
+        ]);
+
+        $anotherContact = Contact::factory()->create([
+            'user_id' => $anotherUser->id
+        ]);
+
+        $response = $this->get('/api/contacts?api_token=' . $user->api_token);
+        $response->assertJsonCount(1)
+            ->assertJson([
+                [
+                    'id' => $contact->id
+                ]
+            ]);
+
+    }
+
     /** @test */
     public function un_usuario_no_autenticado_debe_ser_redirigido_para_iniciar_sesion()
     {
-        $response = $this->post('/api/contacts', $this->data());
+        $response = $this->post('/api/contacts',
+        array_merge($this->data(), ['api_token' => '']));
         $response->assertRedirect('/login');
         $this->assertCount(0, Contact::all());
     }
@@ -27,12 +60,9 @@ class ContactsTest extends TestCase
     public function un_usuario_autenticado_puede_agregar_un_contacto()
     {
 
-        $user = User::factory()->create();
         //$this->withoutExceptionHandling();
-
-        $this->post('/api/contacts', $this->data(),[
-           'api_token' =>  $user->api_token
-        ]);
+        $user = User::factory()->create();
+        $this->post('/api/contacts', $this->data());
 
         $contact = Contact::first();
 
@@ -82,8 +112,10 @@ class ContactsTest extends TestCase
     /** @test */
     public function se_puede_recuperar_un_contacto()
     {
-        $contact = Contact::factory()->create();
-        $response = $this->get('/api/contacts/' . $contact->id);
+        $contact = Contact::factory()->create([
+            'user_id' => $this->user->id
+        ]);
+        $response = $this->get('/api/contacts/' . $contact->id . '?api_token=' . $this->user->api_token );
         $response->assertJson([
             'name' => true,
             'email' => true,
@@ -94,9 +126,23 @@ class ContactsTest extends TestCase
     }
 
     /** @test */
+    public function solo_se_pueden_recuperar_los_contactos_del_usuario()
+    {
+        $contact = Contact::factory()->create([
+            'user_id' => $this->user->id
+        ]);
+
+        $anotherUser = User::factory()->create();
+
+        $response = $this->get('/api/contacts/' . $contact->id . '?api_token=' . $anotherUser->api_token );
+        $response->assertStatus(404);
+
+    }
+
+    /** @test */
     public function un_contacto_puede_ser_actualizado()
     {
-        $this->withoutExceptionHandling();
+        //$this->withoutExceptionHandling();
         $contact = Contact::factory()->create();
         $response = $this->patch('/api/contacts/' . $contact->id, $this->data());
 
@@ -112,7 +158,7 @@ class ContactsTest extends TestCase
     public function un_contacto_puede_ser_eliminado()
     {
         $contact = Contact::factory()->create();
-        $response = $this->delete('/api/contacts/' . $contact->id);
+        $response = $this->delete('/api/contacts/' . $contact->id, ['api_token' => $this->user->api_token]);
         $this->assertCount(0, Contact::all());
     }
 
@@ -123,6 +169,7 @@ class ContactsTest extends TestCase
             'email' => 'test@email.com',
             'birthday' => '05/14/1990',
             'company' => 'ABC String',
+            'api_token' => $this->user->api_token
         ];
     }
 }
