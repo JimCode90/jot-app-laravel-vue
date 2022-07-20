@@ -11,3 +11,4 @@ const app = new Vue({
     },
     router: router
 });
+
